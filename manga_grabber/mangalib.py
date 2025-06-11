@@ -1,25 +1,27 @@
 import asyncio
 import re
 import zipfile
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 import aiohttp
 
 
-class MangaLib:
-    """A class to interact with the MangaLib API and download manga chapters"""
+class BaseLib(ABC):
+    """Base class for *Lib classes"""
 
-    api_base_url = "https://api.cdnlibs.org/api"
-    resource_base_url = "https://img2.imglib.info"
+    api_base_url: str = "https://api.cdnlibs.org/api"
+    resource_base_url: str = "https://img2.imglib.info"
 
-    def __init__(self, manga_url: str, token: str = None):
+    def __init__(self, manga_url: str, token: str | None = None):
         """
-        Initialize the MangaLib instance
+        Initialize the *Lib instance
 
         :param manga_url: URL of the manga on MangaLib
         :param token: Optional API token for authenticated requests
         """
-        self._session = None
+        self._session: aiohttp.ClientSession | None = None
+        self._connector = aiohttp.TCPConnector(limit=20)
         self._token = token
         self._headers = {
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"
@@ -37,10 +39,12 @@ class MangaLib:
         await self.close()
 
     @property
-    async def session(self):
+    async def session(self) -> aiohttp.ClientSession:
         """Get the aiohttp session, creating it if it doesn't exist or is closed"""
         if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(headers=self._headers)
+            self._session = aiohttp.ClientSession(
+                headers=self._headers, connector=self._connector
+            )
         return self._session
 
     async def close(self):
@@ -68,6 +72,14 @@ class MangaLib:
             if response.status != 200:
                 raise Exception(f"Failed to fetch chapter info: {response.status}")
             return (await response.json())["data"]
+
+    @abstractmethod
+    async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
+        pass
+
+
+class MangaLib(BaseLib):
+    """A class to interact with the MangaLib API and download manga chapters"""
 
     async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
         """
@@ -99,14 +111,21 @@ class MangaLib:
         async with session.get(url) as response:
             if response.status != 200:
                 raise Exception(f"Failed to download page: {response.status}")
-            fd = path.open("wb")
-            async for chunk in response.content.iter_chunked(1024):
-                fd.write(chunk)
-            fd.close()
+            with path.open("wb") as fd:
+                async for chunk in response.content.iter_chunked(1024):
+                    fd.write(chunk)
+
+
+class HentaiLib(MangaLib):
+    resource_base_url = "https://img2h.imgslib.link"
+
+    def __init__(self, manga_url: str, token: str | None = None):
+        super().__init__(manga_url, token)
+        self._headers["Referer"] = "https://hentailib.me/"
 
 
 async def download_title(
-    manga_url: str, output_dir: Path, token: str = None, cbz: bool = False
+    manga_url: str, output_dir: Path, token: str | None = None, cbz: bool = False
 ):
     """
     Downloads all chapters of a manga from MangaLib and saves them to the specified directory
@@ -116,7 +135,12 @@ async def download_title(
     :param token: Optional API token for authenticated requests
     :param cbz: If True, chapters will be archived as CBZ files
     """
-    async with MangaLib(manga_url, token) as manga_lib:
+    if manga_url.startswith("https://hentailib.me"):
+        manga_lib_class = HentaiLib
+    else:
+        manga_lib_class = MangaLib
+
+    async with manga_lib_class(manga_url, token) as manga_lib:
         chapters = await manga_lib.get_chapters()
         for chapter in chapters:
             print(

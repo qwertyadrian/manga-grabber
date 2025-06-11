@@ -9,5 +9,5 @@ A simple manga/ranobe downloader written in Python
 
 ## Supported Sources
 - [x] MangaLib
-- [ ] HentaiLib
+- [x] HentaiLib (need token to work)
 - [ ] RanobeLib
