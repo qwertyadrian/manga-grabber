@@ -1,0 +1,23 @@
+[project]
+name = "manga-grabber"
+description = "A simple manga/ranobe downloader written in Python"
+dynamic = ["version"]
+authors = [
+    {name = "qwertyadrian", email = "me@qwertyadrian.ru"}
+]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+dependencies = [
+    "aiohttp",
+]
+
+[tool.poetry.group.dev.dependencies]
+black = "*"
+
+[tool.poetry]
+version = "0.1.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
