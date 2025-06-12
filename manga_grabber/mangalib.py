@@ -63,12 +63,15 @@ class BaseLib(ABC):
                 raise Exception(f"Failed to fetch chapters: {response.status}")
             return (await response.json())["data"]
 
-    async def get_chapter_info(self, chapter: int, volume: int):
+    async def get_chapter_info(self, chapter: int, volume: int, branch_id: int | None = None):
         """Fetch detailed information about a specific chapter of the manga"""
         session = await self.session
+        params = {"number": chapter, "volume": volume}
+        if branch_id is not None:
+            params["branch_id"] = branch_id
         async with session.get(
             f"{self.api_base_url}/manga/{self.manga_id}/chapter",
-            params=dict(number=chapter, volume=volume),
+            params=params,
         ) as response:
             if response.status != 200:
                 raise Exception(f"Failed to fetch chapter info: {response.status}")
@@ -84,22 +87,23 @@ class BaseLib(ABC):
                     fd.write(chunk)
 
     @abstractmethod
-    async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
+    async def download_chapter(self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None):
         pass
 
 
 class MangaLib(BaseLib):
     """A class to interact with the MangaLib API and download manga chapters"""
 
-    async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
+    async def download_chapter(self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None):
         """
         Download all pages of a specific chapter and save them to the specified directory
 
         :param chapter: Chapter number to download
         :param volume: Volume number to download
         :param output_dir: Directory where the chapter pages will be saved
+        :param branch_id: ID of translation branch (optional, for multi-branch titles)
         """
-        ch = await self.get_chapter_info(chapter, volume)
+        ch = await self.get_chapter_info(chapter, volume, branch_id)
 
         if not output_dir.exists():
             output_dir.mkdir(parents=True)
@@ -128,15 +132,16 @@ class HentaiLib(MangaLib):
 class RanobeLib(BaseLib):
     resource_base_url = "https://ranobelib.me"
 
-    async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
+    async def download_chapter(self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None):
         """
         Download all pages of a specific chapter and save them to the specified directory
 
         :param chapter: Chapter number to download
         :param volume: Volume number to download
         :param output_dir: Directory where the chapter pages will be saved
+        :param branch_id: ID of translation branch (optional, for multi-branch titles)
         """
-        ch = await self.get_chapter_info(chapter, volume)
+        ch = await self.get_chapter_info(chapter, volume, branch_id)
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -238,13 +243,14 @@ class RanobeLib(BaseLib):
 
 
 async def download_title(
-    manga_url: str, output_dir: Path, token: str | None = None, cbz: bool = False
+    manga_url: str, output_dir: Path, branch_id: int | None = None, token: str | None = None, cbz: bool = False
 ):
     """
     Downloads all chapters of a manga from MangaLib and saves them to the specified directory
 
     :param manga_url: URL of the manga on MangaLib
     :param output_dir: Directory where the manga chapters will be saved
+    :param branch_id: ID of translation branch (optional, for multi-branch titles)
     :param token: Optional API token for authenticated requests
     :param cbz: If True, chapters will be archived as CBZ files
     """
@@ -263,6 +269,7 @@ async def download_title(
                 chapter["number"],
                 chapter["volume"],
                 output_dir / f"v{chapter['volume']}_c{chapter['number']}",
+                branch_id=branch_id,
             )
             print(
                 f"Chapter {chapter['number']} from volume {chapter['volume']} downloaded."
