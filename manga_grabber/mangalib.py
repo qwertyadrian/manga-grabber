@@ -265,23 +265,22 @@ async def download_title(
             print(
                 f"Downloading chapter {chapter['number']} from volume {chapter['volume']}..."
             )
+            chapter_dir = output_dir / f"v{chapter['volume']}_c{chapter['number']}"
             await manga_lib.download_chapter(
                 chapter["number"],
                 chapter["volume"],
-                output_dir / f"v{chapter['volume']}_c{chapter['number']}",
+                chapter_dir,
                 branch_id=branch_id,
             )
             print(
                 f"Chapter {chapter['number']} from volume {chapter['volume']} downloaded."
             )
             if cbz:
-                cbz_path = output_dir / f"v{chapter['volume']}_c{chapter['number']}.cbz"
+                cbz_path = chapter_dir.with_suffix(".cbz")
                 with zipfile.ZipFile(
                     cbz_path, "w", compression=zipfile.ZIP_DEFLATED
                 ) as zipf:
-                    for page in (
-                        output_dir / f"v{chapter['volume']}_c{chapter['number']}"
-                    ).iterdir():
+                    for page in chapter_dir.iterdir():
                         zipf.write(page, arcname=page.name)
                 print(
                     f"Chapter {chapter['number']} from volume {chapter['volume']} archived as {cbz_path}."
