@@ -63,7 +63,9 @@ class BaseLib(ABC):
                 raise Exception(f"Failed to fetch chapters: {response.status}")
             return (await response.json())["data"]
 
-    async def get_chapter_info(self, chapter: int, volume: int, branch_id: int | None = None):
+    async def get_chapter_info(
+        self, chapter: int, volume: int, branch_id: int | None = None
+    ):
         """Fetch detailed information about a specific chapter of the manga"""
         session = await self.session
         params = {"number": chapter, "volume": volume}
@@ -87,14 +89,18 @@ class BaseLib(ABC):
                     fd.write(chunk)
 
     @abstractmethod
-    async def download_chapter(self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None):
+    async def download_chapter(
+        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None
+    ):
         pass
 
 
 class MangaLib(BaseLib):
     """A class to interact with the MangaLib API and download manga chapters"""
 
-    async def download_chapter(self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None):
+    async def download_chapter(
+        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None
+    ):
         """
         Download all pages of a specific chapter and save them to the specified directory
 
@@ -132,7 +138,9 @@ class HentaiLib(MangaLib):
 class RanobeLib(BaseLib):
     resource_base_url = "https://ranobelib.me"
 
-    async def download_chapter(self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None):
+    async def download_chapter(
+        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None
+    ):
         """
         Download all pages of a specific chapter and save them to the specified directory
 
@@ -244,7 +252,11 @@ class RanobeLib(BaseLib):
 
 
 async def download_title(
-    manga_url: str, output_dir: Path, branch_id: int | None = None, token: str | None = None, cbz: bool = False
+    manga_url: str,
+    output_dir: Path,
+    branch_id: int | None = None,
+    token: str | None = None,
+    cbz: bool = False,
 ):
     """
     Downloads all chapters of a manga from MangaLib and saves them to the specified directory
