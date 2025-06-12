@@ -73,6 +73,15 @@ class BaseLib(ABC):
                 raise Exception(f"Failed to fetch chapter info: {response.status}")
             return (await response.json())["data"]
 
+    @staticmethod
+    async def _download_file(session, url, path: Path):
+        async with session.get(url) as response:
+            if response.status != 200:
+                raise Exception(f"Failed to download page: {response.status}")
+            with path.open("wb") as fd:
+                async for chunk in response.content.iter_chunked(1024):
+                    fd.write(chunk)
+
     @abstractmethod
     async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
         pass
@@ -98,22 +107,13 @@ class MangaLib(BaseLib):
         for page in ch["pages"]:
             url = f"{self.resource_base_url}/{page['url']}"
             tasks.append(
-                self._download_page(
+                self._download_file(
                     await self.session,
                     url,
                     output_dir / f"{page['slug']:02d}_{page['image']}",
                 )
             )
         return await asyncio.gather(*tasks)
-
-    @staticmethod
-    async def _download_page(session, url, path: Path):
-        async with session.get(url) as response:
-            if response.status != 200:
-                raise Exception(f"Failed to download page: {response.status}")
-            with path.open("wb") as fd:
-                async for chunk in response.content.iter_chunked(1024):
-                    fd.write(chunk)
 
 
 class HentaiLib(MangaLib):
