@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 import aiohttp
+from bs4 import BeautifulSoup
 
 
 class BaseLib(ABC):
@@ -122,6 +123,118 @@ class HentaiLib(MangaLib):
     def __init__(self, manga_url: str, token: str | None = None):
         super().__init__(manga_url, token)
         self._headers["Referer"] = "https://hentailib.me/"
+
+
+class RanobeLib(BaseLib):
+    resource_base_url = "https://ranobelib.me"
+
+    async def download_chapter(self, chapter: int, volume: int, output_dir: Path):
+        """
+        Download all pages of a specific chapter and save them to the specified directory
+
+        :param chapter: Chapter number to download
+        :param volume: Volume number to download
+        :param output_dir: Directory where the chapter pages will be saved
+        """
+        ch = await self.get_chapter_info(chapter, volume)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        file = output_dir / f"v{volume}_c{chapter}.html"
+        img_path = output_dir / "img"
+        img_path.mkdir(parents=True, exist_ok=True)
+
+        attachments = ch.get("attachments", [])
+        text = (
+            f"<!DOCTYPE html>\n"
+            f'<html lang="ru">\n'
+            f"<head>\n"
+            f'<meta charset="UTF-8">\n'
+            f'<title>Том {volume} Глава {chapter} — {ch["name"]}</title>\n'
+            f"</head>\n"
+            f"<body>\n"
+            f"<h1>Том {volume} Глава {chapter} — {ch['name']}</h1>\n"
+        )
+        if isinstance(ch["content"], str):
+            # If content is a string, it is likely using old HTML format
+            soup = BeautifulSoup(ch["content"], "html.parser")
+            for tag in soup.find_all("img"):
+                img_filename = tag["src"].split("/")[-1]
+                if attachments:
+                    attachment = next(
+                        (a for a in attachments if a["filename"] == img_filename), None
+                    )
+                    if attachment:
+                        tag["src"] = f"img/{attachment['filename']}"
+            text += ch["content"]
+        elif isinstance(ch["content"], dict):
+            # If content is a dict, it is using the new custom format
+            text += self.convert_ranobe_content_to_html(
+                ch["content"]["content"], attachments
+            )
+        text += "\n</body>\n</html>"
+
+        with file.open("w", encoding="utf-8") as f:
+            f.write(text)
+
+        tasks = []
+        for attachment in attachments:
+            img_url = f"{self.resource_base_url}{attachment['url']}"
+            img_path = img_path / attachment["filename"]
+            tasks.append(self._download_file(await self.session, img_url, img_path))
+
+        await asyncio.gather(*tasks)
+
+    @staticmethod
+    def convert_ranobe_content_to_html(
+        content: list[dict], attachments: list[dict]
+    ) -> str:
+        """
+        Convert RanobeLib content from custom to HTML format
+
+        :param content: The content in custom format
+        :param attachments: Attachments list
+        :return: The content converted to HTML format
+        """
+        soup = BeautifulSoup()
+        for item in content:
+            if item["type"] == "paragraph":
+                p = soup.new_tag("p")
+                for c in item.get("content", []):
+                    if c["type"] == "text":
+                        if marks := c.get("marks"):
+                            match marks[0]["type"]:
+                                case "bold":
+                                    b = soup.new_tag("b")
+                                    b.string = c["text"]
+                                    p.append(b)
+                                case "italic":
+                                    i = soup.new_tag("i")
+                                    i.string = c["text"]
+                                    p.append(i)
+                                case "underline":
+                                    u = soup.new_tag("u")
+                                    u.string = c["text"]
+                                    p.append(u)
+                                case _:
+                                    print("Unknown mark type:", marks[0]["type"])
+                                    p.append(c["text"])
+                        else:
+                            p.append(c["text"])
+                    if c["type"] == "hardBreak":
+                        br = soup.new_tag("br")
+                        p.append(br)
+                soup.append(p)
+            elif item["type"] == "horizontalRule":
+                hr = soup.new_tag("hr")
+                soup.append(hr)
+            elif item["type"] == "image":
+                images = item["attrs"].get("images", [])
+                for num, image in enumerate(images):
+                    img = soup.new_tag("img")
+                    img["src"] = f"img/{attachments[num]['filename']}"
+                    soup.append(img)
+        return str(soup)
 
 
 async def download_title(

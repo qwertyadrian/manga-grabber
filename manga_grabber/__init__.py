@@ -4,4 +4,4 @@ __version__ = "0.0.0"
 __copyright__ = "Copyright (c) 2025 Adrian Polyakov"
 __license__ = "MIT"
 
-from .mangalib import MangaLib, HentaiLib, download_title
+from .mangalib import MangaLib, HentaiLib, RanobeLib, download_title
