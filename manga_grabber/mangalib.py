@@ -145,9 +145,9 @@ class RanobeLib(BaseLib):
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        file = output_dir / f"v{volume}_c{chapter}.html"
-        img_path = output_dir / "img"
-        img_path.mkdir(parents=True, exist_ok=True)
+        file = output_dir / "index.html"
+        assets_path = output_dir / "assets"
+        assets_path.mkdir(parents=True, exist_ok=True)
 
         attachments = ch.get("attachments", [])
         text = (
@@ -170,8 +170,8 @@ class RanobeLib(BaseLib):
                         (a for a in attachments if a["filename"] == img_filename), None
                     )
                     if attachment:
-                        tag["src"] = f"img/{attachment['filename']}"
-            text += ch["content"]
+                        tag["src"] = f"{assets_path.name}/{attachment['filename']}"
+            text += str(soup)
         elif isinstance(ch["content"], dict):
             # If content is a dict, it is using the new custom format
             text += self.convert_ranobe_content_to_html(
@@ -185,20 +185,21 @@ class RanobeLib(BaseLib):
         tasks = []
         for attachment in attachments:
             img_url = f"{self.resource_base_url}{attachment['url']}"
-            img_path = img_path / attachment["filename"]
+            img_path = assets_path / attachment["filename"]
             tasks.append(self._download_file(await self.session, img_url, img_path))
 
         await asyncio.gather(*tasks)
 
     @staticmethod
     def convert_ranobe_content_to_html(
-        content: list[dict], attachments: list[dict]
+        content: list[dict], attachments: list[dict], assets_base: str = "assets"
     ) -> str:
         """
         Convert RanobeLib content from custom to HTML format
 
         :param content: The content in custom format
         :param attachments: Attachments list
+        :param assets_base: Base path for assets in the HTML
         :return: The content converted to HTML format
         """
         soup = BeautifulSoup()
@@ -237,7 +238,7 @@ class RanobeLib(BaseLib):
                 images = item["attrs"].get("images", [])
                 for num, image in enumerate(images):
                     img = soup.new_tag("img")
-                    img["src"] = f"img/{attachments[num]['filename']}"
+                    img["src"] = f"{assets_base}/{attachments[num]['filename']}"
                     soup.append(img)
         return str(soup)
 
