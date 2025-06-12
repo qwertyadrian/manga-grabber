@@ -256,6 +256,8 @@ async def download_title(
     """
     if manga_url.startswith("https://hentailib.me"):
         manga_lib_class = HentaiLib
+    elif manga_url.startswith("https://ranobelib.me"):
+        manga_lib_class = RanobeLib
     else:
         manga_lib_class = MangaLib
 
