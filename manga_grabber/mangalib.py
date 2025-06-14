@@ -176,7 +176,7 @@ class RanobeLib(BaseLib):
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        file = output_dir / "index.html"
+        file = output_dir / f"{prefix}index.html"
         assets_path = output_dir / "assets"
         assets_path.mkdir(parents=True, exist_ok=True)
 
