@@ -273,10 +273,12 @@ class RanobeLib(BaseLib):
                 soup.append(hr)
             elif item["type"] == "image":
                 images = item["attrs"].get("images", [])
-                for num, image in enumerate(images):
-                    img = soup.new_tag("img")
-                    img["src"] = f"{assets_base}/{attachments[num]['filename']}"
-                    soup.append(img)
+                for attachment in attachments:
+                    for image in images:
+                        if attachment["name"] == image["image"]:
+                            img = soup.new_tag("img")
+                            img["src"] = f"{assets_base}/{attachment['filename']}"
+                            soup.append(img)
         return str(soup)
 
     @staticmethod
