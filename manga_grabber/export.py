@@ -1,5 +1,6 @@
 import urllib.parse
 import zipfile
+from importlib.resources import files
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -57,7 +58,15 @@ def html_to_pdf(output_dir: Path):
     """
     pdf_path = output_dir.with_suffix(".pdf")
     pdf = FPDF(unit="pt")
-    pdf.add_font("Noto Serif", "", "/usr/share/fonts/noto/NotoSerif-Regular.ttf")
+
+    fonts_path = files("manga_grabber.fonts")
+    pdf.add_font("DejaVuSerif", "", fonts_path / "DejaVuSerif.ttf")
+    pdf.add_font("DejaVuSerif", "B", fonts_path / "DejaVuSerif-Bold.ttf")
+    pdf.add_font("DejaVuSerif", "I", fonts_path / "DejaVuSerif-Italic.ttf")
+    pdf.add_font("DejaVuSerif", "BI", fonts_path / "DejaVuSerif-BoldItalic.ttf")
+    pdf.add_font(fname=fonts_path / "DejaVuSans.ttf")
+    pdf.set_fallback_fonts(["DejaVuSans"])
+
     pdf.add_page()
 
     # Load the HTML file
@@ -74,7 +83,7 @@ def html_to_pdf(output_dir: Path):
     # Convert the modified HTML back to a string
     html_content = str(soup)
 
-    pdf.write_html(html_content, font_family="Noto Serif")
+    pdf.write_html(html_content, font_family="DejaVuSerif")
 
     pdf.output(str(pdf_path))
     return pdf_path
