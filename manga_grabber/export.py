@@ -109,8 +109,11 @@ def html_to_pdf(html_dir: Path):
 async def download_title(
     manga_url: str,
     output_dir: Path,
+    *,
     branch_id: int | None = None,
     token: str | None = None,
+    from_chapter: int | float = 0,
+    from_volume: int = 0,
     cbz: bool = False,
     pdf: bool = False,
     save_mode: Literal["chapter", "volume", "all"] = "chapter",
@@ -122,6 +125,8 @@ async def download_title(
     :param output_dir: Directory where the manga chapters will be saved
     :param branch_id: ID of translation branch (optional, for multi-branch titles)
     :param token: Optional API token for authenticated requests
+    :param from_chapter: Chapter number to start downloading from
+    :param from_volume: Volume number to start downloading from
     :param cbz: If True, chapters will be archived as CBZ files
     :param pdf: If True, chapters will be archived as PDF files
     :param save_mode: How to save chapters, can be 'chapter' (one chapter per dir/file),
@@ -138,6 +143,13 @@ async def download_title(
     async with manga_lib_class(manga_parsed_url.path, token) as manga_lib:
         chapters = await manga_lib.get_chapters()
         for chapter in chapters:
+            # Check if the volume and chapter numbers are within the specified ranges
+            if (
+                int(chapter["volume"]) < from_volume
+                or float(chapter["number"]) < from_chapter
+            ):
+                continue
+
             branch_found = any(
                 (branch["branch_id"] == branch_id for branch in chapter["branches"])
             )
