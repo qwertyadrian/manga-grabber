@@ -7,6 +7,7 @@ from typing import Literal
 import natsort
 from bs4 import BeautifulSoup
 from fpdf import FPDF
+from fpdf.outline import TableOfContents
 from PIL import Image
 
 from .mangalib import HentaiLib, MangaLib, RanobeLib
@@ -59,9 +60,16 @@ def html_to_pdf(html_dir: Path):
     :param html_dir: Directory containing the HTML file and assets
     :return: Path to the created PDF file
     """
+    html_files = natsort.natsorted(html_dir.glob("*.html"), alg=natsort.ns.REAL)
+
     pdf_path = html_dir.with_suffix(".pdf")
     pdf = FPDF(unit="pt")
+    pdf.add_page()
+    if len(html_files) > 1:
+        toc = TableOfContents()
+        pdf.insert_toc_placeholder(toc.render_toc, allow_extra_pages=True)
 
+    # Add fonts
     fonts_path = files("manga_grabber.fonts")
     pdf.add_font("DejaVuSerif", "", fonts_path / "DejaVuSerif.ttf")
     pdf.add_font("DejaVuSerif", "B", fonts_path / "DejaVuSerif-Bold.ttf")
@@ -69,7 +77,7 @@ def html_to_pdf(html_dir: Path):
     pdf.add_font("DejaVuSerif", "BI", fonts_path / "DejaVuSerif-BoldItalic.ttf")
     pdf.add_font(fname=fonts_path / "DejaVuSans.ttf")
     fallback_fonts = ["DejaVuSans"]
-
+    # Set fallback fonts for CJK characters
     for family in ("Noto Sans CJK JP", "Yu Gothic"):
         if cjk_font := find_font(family, "Regular"):
             pdf.add_font(fname=cjk_font)
@@ -77,9 +85,6 @@ def html_to_pdf(html_dir: Path):
 
     pdf.set_fallback_fonts(fallback_fonts)
 
-    pdf.add_page()
-
-    html_files = natsort.natsorted(html_dir.glob("*.html"), alg=natsort.ns.REAL)
     for html_file in html_files:
         # Load the HTML file
         with open(html_file, "r", encoding="utf-8") as f:
