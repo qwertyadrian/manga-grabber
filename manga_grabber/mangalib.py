@@ -89,7 +89,7 @@ class BaseLib(ABC):
 
     @abstractmethod
     async def download_chapter(
-        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None
+        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None, prefix: str = ""
     ):
         pass
 
@@ -98,7 +98,7 @@ class MangaLib(BaseLib):
     """A class to interact with the MangaLib API and download manga chapters"""
 
     async def download_chapter(
-        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None
+        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None, prefix: str = ""
     ):
         """
         Download all pages of a specific chapter and save them to the specified directory
@@ -107,6 +107,7 @@ class MangaLib(BaseLib):
         :param volume: Volume number to download
         :param output_dir: Directory where the chapter pages will be saved
         :param branch_id: ID of translation branch (optional, for multi-branch titles)
+        :param prefix: Prefix for the downloaded files
         """
         ch = await self.get_chapter_info(chapter, volume, branch_id)
 
@@ -120,7 +121,7 @@ class MangaLib(BaseLib):
                 self._download_file(
                     await self.session,
                     url,
-                    output_dir / f"{page['slug']:02d}_{page['image']}",
+                    output_dir / f"{prefix}{page['slug']:02d}_{page['image']}",
                 )
             )
         return await asyncio.gather(*tasks)
@@ -138,7 +139,7 @@ class RanobeLib(BaseLib):
     resource_base_url = "https://ranobelib.me"
 
     async def download_chapter(
-        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None
+        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None, prefix: str = ""
     ):
         """
         Download all pages of a specific chapter and save them to the specified directory
@@ -147,6 +148,7 @@ class RanobeLib(BaseLib):
         :param volume: Volume number to download
         :param output_dir: Directory where the chapter pages will be saved
         :param branch_id: ID of translation branch (optional, for multi-branch titles)
+        :param prefix: Prefix for the downloaded files
         """
         ch = await self.get_chapter_info(chapter, volume, branch_id)
 

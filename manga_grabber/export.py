@@ -2,6 +2,7 @@ import urllib.parse
 import zipfile
 from importlib.resources import files
 from pathlib import Path
+from typing import Literal
 
 from bs4 import BeautifulSoup
 from fpdf import FPDF
@@ -96,6 +97,7 @@ async def download_title(
     token: str | None = None,
     cbz: bool = False,
     pdf: bool = False,
+    save_mode: Literal["chapter", "volume", "all"] = "chapter",
 ):
     """
     Downloads all chapters of a manga from MangaLib and saves them to the specified directory
@@ -106,6 +108,8 @@ async def download_title(
     :param token: Optional API token for authenticated requests
     :param cbz: If True, chapters will be archived as CBZ files
     :param pdf: If True, chapters will be archived as PDF files
+    :param save_mode: How to save chapters, can be 'chapter' (one chapter per dir/file),
+    'volume' (one volume per dir/file), or 'all' (one dir/file for all chapters)
     """
     manga_parsed_url = urllib.parse.urlparse(manga_url)
     if manga_parsed_url.hostname == "hentailib.me":
@@ -121,12 +125,22 @@ async def download_title(
             print(
                 f"Downloading chapter {chapter['number']} from volume {chapter['volume']}..."
             )
-            chapter_dir = output_dir / f"v{chapter['volume']}_c{chapter['number']}"
+            match save_mode:
+                case "chapter":
+                    chapter_dir = output_dir / f"v{chapter['volume']}_c{chapter['number']}"
+                    prefix = ""
+                case "volume":
+                    chapter_dir = output_dir / f"v{chapter['volume']}"
+                    prefix = f"c{chapter['number']}_"
+                case "all":
+                    chapter_dir = output_dir
+                    prefix = f"v{chapter['volume']}_c{chapter['number']}_"
             await manga_lib.download_chapter(
                 chapter["number"],
                 chapter["volume"],
                 chapter_dir,
                 branch_id=branch_id,
+                prefix=prefix,
             )
             print(
                 f"Chapter {chapter['number']} from volume {chapter['volume']} downloaded."
