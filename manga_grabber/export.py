@@ -123,6 +123,10 @@ async def download_title(
     async with manga_lib_class(manga_parsed_url.path, token) as manga_lib:
         chapters = await manga_lib.get_chapters()
         for chapter in chapters:
+            branch_found = any((branch["branch_id"] == branch_id for branch in chapter["branches"]))
+            if not branch_found:
+                continue
+
             print(
                 f"Downloading chapter {chapter['number']} from volume {chapter['volume']}..."
             )
