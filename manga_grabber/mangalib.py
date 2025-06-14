@@ -121,7 +121,7 @@ class MangaLib(BaseLib):
                 self._download_file(
                     await self.session,
                     url,
-                    output_dir / f"{prefix}{page['slug']:02d}_{page['image']}",
+                    output_dir / f"{prefix}p{page['slug']:02d}_{page['image']}",
                 )
             )
         return await asyncio.gather(*tasks)

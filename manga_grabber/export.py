@@ -127,14 +127,14 @@ async def download_title(
             )
             match save_mode:
                 case "chapter":
-                    chapter_dir = output_dir / f"v{chapter['volume']}_c{chapter['number']}"
+                    chapter_dir = output_dir / f"vol{chapter['volume']}_ch{chapter['number']}"
                     prefix = ""
                 case "volume":
-                    chapter_dir = output_dir / f"v{chapter['volume']}"
-                    prefix = f"c{chapter['number']}_"
+                    chapter_dir = output_dir / f"vol{chapter['volume']}"
+                    prefix = f"ch{chapter['number']}_"
                 case "all":
                     chapter_dir = output_dir
-                    prefix = f"v{chapter['volume']}_c{chapter['number']}_"
+                    prefix = f"vol{chapter['volume']}_ch{chapter['number']}_"
             await manga_lib.download_chapter(
                 chapter["number"],
                 chapter["volume"],
