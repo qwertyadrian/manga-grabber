@@ -1,6 +1,5 @@
 import asyncio
 import re
-import zipfile
 from abc import ABC, abstractmethod
 from pathlib import Path
 
