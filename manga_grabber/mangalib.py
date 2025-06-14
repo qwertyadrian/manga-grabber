@@ -1,5 +1,6 @@
 import asyncio
 import re
+import urllib.parse
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -154,6 +155,9 @@ class HentaiLib(MangaLib):
 
 class RanobeLib(BaseLib):
     resource_base_url = "https://ranobelib.me"
+    url_regex = re.compile(
+        r"https?://(www\.)?[-a-zA-Zа-яA-Я0-9@:%._+~#=]{1,256}\.[a-zA-Zа-яA-Я0-9]{1,6}\b([-a-zA-Zа-яA-Я0-9()@:%_+.~#?&/=]*)"
+    )
 
     async def download_chapter(
         self,
@@ -209,6 +213,8 @@ class RanobeLib(BaseLib):
                 ch["content"]["content"], attachments
             )
         text += "\n</body>\n</html>"
+        # Replace URLs in the text with links
+        text = re.sub(self.url_regex, self._create_hyperlink, text)
 
         with file.open("w", encoding="utf-8") as f:
             f.write(text)
@@ -272,3 +278,16 @@ class RanobeLib(BaseLib):
                     img["src"] = f"{assets_base}/{attachments[num]['filename']}"
                     soup.append(img)
         return str(soup)
+
+    @staticmethod
+    def _create_hyperlink(match: re.Match) -> str:
+        """
+        Create a hyperlink HTML tag from a regex match object
+
+        :param match: Regex match object containing the URL
+        :return: HTML hyperlink tag
+        """
+        url = match.group(0)
+        parsed_url = urllib.parse.urlparse(url)
+        parsed_url = parsed_url._replace(path=urllib.parse.quote(parsed_url.path))
+        return f'<a href="{parsed_url.geturl()}" target="_blank">{url}</a>'
