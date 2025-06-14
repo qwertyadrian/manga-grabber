@@ -4,6 +4,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Literal
 
+import natsort
 from bs4 import BeautifulSoup
 from fpdf import FPDF
 from PIL import Image
@@ -20,7 +21,7 @@ def img_to_cbz(output_dir: Path):
     """
     cbz_path = output_dir.with_suffix(".cbz")
     with zipfile.ZipFile(cbz_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
-        for page in output_dir.iterdir():
+        for page in natsort.natsorted(output_dir.iterdir(), alg=natsort.ns.REAL):
             zipf.write(page, arcname=page.name)
     return cbz_path
 
@@ -36,7 +37,7 @@ def img_to_pdf(output_dir: Path):
     pdf = FPDF(unit="pt")  # Use points as unit for better control over dimensions
 
     # Sort pages by name to maintain order
-    pages = sorted(output_dir.iterdir(), key=lambda p: p.name)
+    pages = natsort.natsorted(output_dir.iterdir(), alg=natsort.ns.REAL)
 
     for page in pages:
         # Open the image file to get its dimensions
@@ -127,7 +128,9 @@ async def download_title(
             )
             match save_mode:
                 case "chapter":
-                    chapter_dir = output_dir / f"vol{chapter['volume']}_ch{chapter['number']}"
+                    chapter_dir = (
+                        output_dir / f"vol{chapter['volume']}_ch{chapter['number']}"
+                    )
                     prefix = ""
                 case "volume":
                     chapter_dir = output_dir / f"vol{chapter['volume']}"

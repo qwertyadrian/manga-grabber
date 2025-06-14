@@ -13,6 +13,7 @@ dependencies = [
     "beautifulsoup4",
     "fpdf2",
     "pillow",
+    "natsort",
 ]
 
 [tool.poetry]

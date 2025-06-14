@@ -89,7 +89,12 @@ class BaseLib(ABC):
 
     @abstractmethod
     async def download_chapter(
-        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None, prefix: str = ""
+        self,
+        chapter: int,
+        volume: int,
+        output_dir: Path,
+        branch_id: int | None = None,
+        prefix: str = "",
     ):
         pass
 
@@ -98,7 +103,12 @@ class MangaLib(BaseLib):
     """A class to interact with the MangaLib API and download manga chapters"""
 
     async def download_chapter(
-        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None, prefix: str = ""
+        self,
+        chapter: int,
+        volume: int,
+        output_dir: Path,
+        branch_id: int | None = None,
+        prefix: str = "",
     ):
         """
         Download all pages of a specific chapter and save them to the specified directory
@@ -139,7 +149,12 @@ class RanobeLib(BaseLib):
     resource_base_url = "https://ranobelib.me"
 
     async def download_chapter(
-        self, chapter: int, volume: int, output_dir: Path, branch_id: int | None = None, prefix: str = ""
+        self,
+        chapter: int,
+        volume: int,
+        output_dir: Path,
+        branch_id: int | None = None,
+        prefix: str = "",
     ):
         """
         Download all pages of a specific chapter and save them to the specified directory
