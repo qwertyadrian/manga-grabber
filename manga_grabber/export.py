@@ -10,34 +10,35 @@ from fpdf import FPDF
 from PIL import Image
 
 from .mangalib import HentaiLib, MangaLib, RanobeLib
+from .utils import find_font
 
 
-def img_to_cbz(output_dir: Path):
+def img_to_cbz(img_dir: Path):
     """
     Creates a CBZ archive from the contents of the specified directory
 
-    :param output_dir: Directory containing manga chapter pages
+    :param img_dir: Directory containing manga chapter pages
     :return: Path to the created CBZ file
     """
-    cbz_path = output_dir.with_suffix(".cbz")
+    cbz_path = img_dir.with_suffix(".cbz")
     with zipfile.ZipFile(cbz_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
-        for page in natsort.natsorted(output_dir.iterdir(), alg=natsort.ns.REAL):
+        for page in natsort.natsorted(img_dir.iterdir(), alg=natsort.ns.REAL):
             zipf.write(page, arcname=page.name)
     return cbz_path
 
 
-def img_to_pdf(output_dir: Path):
+def img_to_pdf(img_path: Path):
     """
     Creates a PDF file from the contents of the specified directory
 
-    :param output_dir: Directory containing manga chapter pages
+    :param img_path: Directory containing manga chapter pages
     :return: Path to the created PDF file
     """
-    pdf_path = output_dir.with_suffix(".pdf")
+    pdf_path = img_path.with_suffix(".pdf")
     pdf = FPDF(unit="pt")  # Use points as unit for better control over dimensions
 
     # Sort pages by name to maintain order
-    pages = natsort.natsorted(output_dir.iterdir(), alg=natsort.ns.REAL)
+    pages = natsort.natsorted(img_path.iterdir(), alg=natsort.ns.REAL)
 
     for page in pages:
         # Open the image file to get its dimensions
@@ -51,14 +52,14 @@ def img_to_pdf(output_dir: Path):
     return pdf_path
 
 
-def html_to_pdf(output_dir: Path):
+def html_to_pdf(html_dir: Path):
     """
     Creates a PDF file from the HTML content in the specified directory
 
-    :param output_dir: Directory containing the HTML file and assets
+    :param html_dir: Directory containing the HTML file and assets
     :return: Path to the created PDF file
     """
-    pdf_path = output_dir.with_suffix(".pdf")
+    pdf_path = html_dir.with_suffix(".pdf")
     pdf = FPDF(unit="pt")
 
     fonts_path = files("manga_grabber.fonts")
@@ -67,25 +68,34 @@ def html_to_pdf(output_dir: Path):
     pdf.add_font("DejaVuSerif", "I", fonts_path / "DejaVuSerif-Italic.ttf")
     pdf.add_font("DejaVuSerif", "BI", fonts_path / "DejaVuSerif-BoldItalic.ttf")
     pdf.add_font(fname=fonts_path / "DejaVuSans.ttf")
-    pdf.set_fallback_fonts(["DejaVuSans"])
+    fallback_fonts = ["DejaVuSans"]
+
+    for family in ("Noto Sans CJK JP", "Yu Gothic"):
+        if cjk_font := find_font(family, "Regular"):
+            pdf.add_font(fname=cjk_font)
+            fallback_fonts.append(cjk_font.stem)
+
+    pdf.set_fallback_fonts(fallback_fonts)
 
     pdf.add_page()
 
-    # Load the HTML file
-    html_file = output_dir / "index.html"
-    with open(html_file, "r", encoding="utf-8") as f:
-        html_content = f.read()
+    html_files = natsort.natsorted(html_dir.glob("*.html"), alg=natsort.ns.REAL)
+    for html_file in html_files:
+        # Load the HTML file
+        with open(html_file, "r", encoding="utf-8") as f:
+            html_content = f.read()
 
-    soup = BeautifulSoup(html_content, "html.parser")
-    # Set images width to fit the page
-    for img in soup.find_all("img"):
-        img_path = output_dir / img["src"]
-        img["width"] = int(pdf.epw)
-        img["src"] = str(img_path)
-    # Convert the modified HTML back to a string
-    html_content = str(soup)
+        soup = BeautifulSoup(html_content, "html.parser")
+        # Set images width to fit the page
+        for img in soup.find_all("img"):
+            img_path = html_dir / img["src"]
+            img["width"] = int(pdf.epw)
+            img["src"] = str(img_path)
+        # Convert the modified HTML back to a string
+        html_content = str(soup)
 
-    pdf.write_html(html_content, font_family="DejaVuSerif")
+        pdf.write_html(html_content, font_family="DejaVuSerif")
+        pdf.add_page()
 
     pdf.output(str(pdf_path))
     return pdf_path
@@ -123,7 +133,9 @@ async def download_title(
     async with manga_lib_class(manga_parsed_url.path, token) as manga_lib:
         chapters = await manga_lib.get_chapters()
         for chapter in chapters:
-            branch_found = any((branch["branch_id"] == branch_id for branch in chapter["branches"]))
+            branch_found = any(
+                (branch["branch_id"] == branch_id for branch in chapter["branches"])
+            )
             if not branch_found:
                 continue
 
@@ -158,7 +170,7 @@ async def download_title(
                     f"Chapter {chapter['number']} from volume {chapter['volume']} archived as {cbz_path}."
                 )
             if pdf:
-                if (chapter_dir / "index.html").exists():
+                if any(chapter_dir.glob("*.html")):
                     pdf_path = html_to_pdf(chapter_dir)
                 else:
                     pdf_path = img_to_pdf(chapter_dir)
