@@ -1,3 +1,4 @@
+import logging
 import urllib.parse
 import zipfile
 from importlib.resources import files
@@ -12,6 +13,9 @@ from PIL import Image
 
 from .mangalib import HentaiLib, MangaLib, RanobeLib
 from .utils import find_font
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 def img_to_cbz(img_dir: Path):
@@ -156,7 +160,7 @@ async def download_title(
             if not branch_found:
                 continue
 
-            print(
+            logger.info(
                 f"Downloading chapter {chapter['number']} from volume {chapter['volume']}..."
             )
             match save_mode:
@@ -178,12 +182,12 @@ async def download_title(
                 branch_id=branch_id,
                 prefix=prefix,
             )
-            print(
+            logger.info(
                 f"Chapter {chapter['number']} from volume {chapter['volume']} downloaded."
             )
             if cbz:
                 cbz_path = img_to_cbz(chapter_dir)
-                print(
+                logger.info(
                     f"Chapter {chapter['number']} from volume {chapter['volume']} archived as {cbz_path}."
                 )
             if pdf:
@@ -191,6 +195,6 @@ async def download_title(
                     pdf_path = html_to_pdf(chapter_dir)
                 else:
                     pdf_path = img_to_pdf(chapter_dir)
-                print(
+                logger.info(
                     f"Chapter {chapter['number']} from volume {chapter['volume']} archived as {pdf_path}."
                 )

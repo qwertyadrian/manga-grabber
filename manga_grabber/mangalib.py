@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 import urllib.parse
 from abc import ABC, abstractmethod
@@ -6,6 +7,9 @@ from pathlib import Path
 
 import aiohttp
 from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 
 class BaseLib(ABC):
@@ -260,7 +264,9 @@ class RanobeLib(BaseLib):
                                     u.string = c["text"]
                                     p.append(u)
                                 case _:
-                                    print("Unknown mark type:", marks[0]["type"])
+                                    logger.warning(
+                                        "Unknown mark type: %s", marks[0]["type"]
+                                    )
                                     p.append(c["text"])
                         else:
                             p.append(c["text"])
