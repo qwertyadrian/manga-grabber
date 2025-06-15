@@ -91,7 +91,20 @@ class BaseLib(ABC):
             return (await response.json())["data"]
 
     @staticmethod
-    async def _download_file(session, url, path: Path):
+    async def _download_file(
+        session: aiohttp.ClientSession, url: str, path: Path, force: bool = False
+    ):
+        """
+        Download a file from the given URL and save it to the specified path
+
+        :param session: aiohttp session to use for the request
+        :param url: URL of the file to download
+        :param path: Path where the file will be saved
+        :param force: If True, overwrite the file if it already exists
+        """
+        if path.exists() and not force:
+            logger.info(f"File {path.name} already exists")
+            return
         async with session.get(url) as response:
             if response.status != 200:
                 raise Exception(f"Failed to download page: {response.status}")
