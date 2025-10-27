@@ -35,7 +35,8 @@ class BaseLib(ABC):
             self._headers["Authorization"] = f"Bearer {token}"
 
         # Extract the manga ID from the URL
-        self.manga_id = int(re.findall(r"/((\d+)-?-?[\w-]*)", manga_url)[0][1])
+        self.manga_id = int(re.findall(r"/(\d+)--?([\w-]*)", manga_url)[0][0])
+        self.manga_name = re.findall(r"/(\d+)--?([\w-]*)", manga_url)[0][1]
 
     async def __aenter__(self):
         return self
@@ -61,7 +62,7 @@ class BaseLib(ABC):
         """Fetch the list of chapters and additional info for the manga"""
         session = await self.session
         async with session.get(
-            f"{self.api_base_url}/manga/{self.manga_id}/chapters"
+            f"{self.api_base_url}/manga/{self.manga_id}--{self.manga_name}/chapters"
         ) as response:
             if response.status != 200:
                 raise Exception(f"Failed to fetch chapters: {response.status}")
@@ -83,7 +84,7 @@ class BaseLib(ABC):
         if branch_id is not None:
             params["branch_id"] = branch_id
         async with session.get(
-            f"{self.api_base_url}/manga/{self.manga_id}/chapter",
+            f"{self.api_base_url}/manga/{self.manga_id}--{self.manga_name}/chapter",
             params=params,
         ) as response:
             if response.status != 200:
@@ -126,6 +127,10 @@ class BaseLib(ABC):
 
 class MangaLib(BaseLib):
     """A class to interact with the MangaLib API and download manga chapters"""
+
+    def __init__(self, manga_url: str, token: str | None = None):
+        super().__init__(manga_url, token)
+        self._headers["Referer"] = "https://mangalib.me/"
 
     async def download_chapter(
         self,
