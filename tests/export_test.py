@@ -6,10 +6,6 @@ import pytest_asyncio
 from manga_grabber.export import download_title, img_to_cbz, img_to_pdf, html_to_pdf
 
 
-pytestmark = [
-    pytest.mark.asyncio(loop_scope="module"),
-]
-
 TOKEN = os.environ.get("TOKEN")
 
 
