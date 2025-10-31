@@ -8,6 +8,8 @@ from pathlib import Path
 import aiohttp
 from bs4 import BeautifulSoup
 
+from .exceptions import ChapterInfoError, GrabberException, TitleNotFoundError
+
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
@@ -64,9 +66,15 @@ class BaseLib(ABC):
         async with session.get(
             f"{self.api_base_url}/manga/{self.manga_id}--{self.manga_name}/chapters"
         ) as response:
-            if response.status != 200:
-                raise Exception(f"Failed to fetch chapters: {response.status}")
-            return (await response.json())["data"]
+            match response.status:
+                case 404:
+                    raise TitleNotFoundError(f"Title {self.manga_name} not found")
+                case 200:
+                    return (await response.json())["data"]
+                case _:
+                    raise GrabberException(
+                        f"Failed to fetch chapters: {response.status}"
+                    )
 
     async def get_chapter_info(
         self, chapter: int, volume: int, branch_id: int | None = None
@@ -87,9 +95,17 @@ class BaseLib(ABC):
             f"{self.api_base_url}/manga/{self.manga_id}--{self.manga_name}/chapter",
             params=params,
         ) as response:
-            if response.status != 200:
-                raise Exception(f"Failed to fetch chapter info: {response.status}")
-            return (await response.json())["data"]
+            match response.status:
+                case 404:
+                    raise ChapterInfoError(
+                        f"Info for chapter {chapter} volume {volume} not found"
+                    )
+                case 200:
+                    return (await response.json())["data"]
+                case _:
+                    raise GrabberException(
+                        f"Failed to fetch chapter info: {response.status}"
+                    )
 
     @staticmethod
     async def _download_file(
@@ -108,7 +124,7 @@ class BaseLib(ABC):
             return
         async with session.get(url) as response:
             if response.status != 200:
-                raise Exception(f"Failed to download page: {response.status}")
+                raise GrabberException(f"Failed to download page: {response.status}")
             with path.open("wb") as fd:
                 async for chunk in response.content.iter_chunked(1024):
                     fd.write(chunk)

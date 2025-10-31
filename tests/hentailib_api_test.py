@@ -5,6 +5,7 @@ import pytest
 import pytest_asyncio
 
 from manga_grabber import mangalib
+from manga_grabber.exceptions import TitleNotFoundError
 
 
 pytestmark = [
@@ -35,7 +36,7 @@ async def chapters(request):
 async def test_non_existent_title():
     manga_url = "https://hentailib.me/ru/9999-invalid-title/"
     async with mangalib.HentaiLib(manga_url) as manga:
-        with pytest.raises(Exception):
+        with pytest.raises(TitleNotFoundError):
             await manga.get_chapters()
 
 
