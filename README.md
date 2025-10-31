@@ -1,8 +1,8 @@
 # manga-grabber
 
-![Codecov](https://img.shields.io/codecov/c/github/qwertyadrian/manga-grabber)
+[![Codecov](https://img.shields.io/codecov/c/github/qwertyadrian/manga-grabber)](https://app.codecov.io/github/qwertyadrian/manga-grabber)
 [![Code style: Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-![GitHub License](https://img.shields.io/github/license/qwertyadrian/manga-grabber)
+[![GitHub License](https://img.shields.io/github/license/qwertyadrian/manga-grabber)](./LICENSE)
 
 
 A simple manga/ranobe downloader written in Python
