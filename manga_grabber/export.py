@@ -11,7 +11,7 @@ from fpdf import FPDF
 from fpdf.outline import TableOfContents
 from PIL import Image
 
-from .mangalib import HentaiLib, MangaLib, RanobeLib
+from .mangalib import BaseLib, HentaiLib, MangaLib, RanobeLib
 from .utils import find_font
 
 logger = logging.getLogger(__name__)
@@ -136,6 +136,8 @@ async def download_title(
     :param save_mode: How to save chapters, can be 'chapter' (one chapter per dir/file),
     'volume' (one volume per dir/file), or 'all' (one dir/file for all chapters)
     """
+    manga_lib_class: type[BaseLib]
+
     manga_parsed_url = urllib.parse.urlparse(manga_url)
     if manga_parsed_url.hostname == "hentailib.me":
         manga_lib_class = HentaiLib
