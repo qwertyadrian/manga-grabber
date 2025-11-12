@@ -234,6 +234,7 @@ class RanobeLib(BaseLib):
             f"<h1>Том {volume} Глава {chapter} — {ch['name']}</h1>\n"
         )
         if isinstance(ch["content"], str):
+            logger.info("Content is in old HTML format")
             # If content is a string, it is likely using old HTML format
             soup = BeautifulSoup(ch["content"], "html.parser")
             for tag in soup.find_all("img"):
@@ -252,7 +253,13 @@ class RanobeLib(BaseLib):
             )
         text += "\n</body>\n</html>"
         # Replace URLs in the text with links
-        text = re.sub(self.url_regex, self._create_hyperlink, text)
+        soup = BeautifulSoup(text, "html.parser")
+        for element in soup.find_all(string=True):
+            if element.parent.name != 'a':
+                new_text = re.sub(self.url_regex, self._create_hyperlink, str(element))
+                if new_text != str(element):
+                    element.replace_with(BeautifulSoup(new_text, "html.parser"))
+        text = str(soup)
 
         with file.open("w", encoding="utf-8") as f:
             f.write(text)
