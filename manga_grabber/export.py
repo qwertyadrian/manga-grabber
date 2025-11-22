@@ -29,6 +29,7 @@ def img_to_cbz(img_dir: Path):
     with zipfile.ZipFile(cbz_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
         for page in natsort.natsorted(img_dir.iterdir(), alg=natsort.ns.REAL):
             zipf.write(page, arcname=page.name)
+    logger.info(f"CBZ file created: {cbz_path}")
     return cbz_path
 
 
@@ -54,6 +55,7 @@ def img_to_pdf(img_path: Path):
             pdf.image(image, x=0, y=0, w=width * 0.75, h=height * 0.75)
 
     pdf.output(str(pdf_path))
+    logger.info(f"PDF file created: {pdf_path}")
     return pdf_path
 
 
@@ -107,6 +109,7 @@ def html_to_pdf(html_dir: Path):
         pdf.add_page()
 
     pdf.output(str(pdf_path))
+    logger.info(f"PDF file created: {pdf_path}")
     return pdf_path
 
 
@@ -184,19 +187,11 @@ async def download_title(
                 branch_id=branch_id,
                 prefix=prefix,
             )
-            logger.info(
-                f"Chapter {chapter['number']} from volume {chapter['volume']} downloaded."
-            )
+
             if cbz:
-                cbz_path = img_to_cbz(chapter_dir)
-                logger.info(
-                    f"Chapter {chapter['number']} from volume {chapter['volume']} archived as {cbz_path}."
-                )
+                img_to_cbz(chapter_dir)
             if pdf:
                 if any(chapter_dir.glob("*.html")):
-                    pdf_path = html_to_pdf(chapter_dir)
+                    html_to_pdf(chapter_dir)
                 else:
-                    pdf_path = img_to_pdf(chapter_dir)
-                logger.info(
-                    f"Chapter {chapter['number']} from volume {chapter['volume']} archived as {pdf_path}."
-                )
+                    img_to_pdf(chapter_dir)
