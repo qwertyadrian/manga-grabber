@@ -3,7 +3,7 @@ import os
 import pytest
 import pytest_asyncio
 
-from manga_grabber.export import download_title, img_to_cbz, img_to_pdf, html_to_pdf
+from manga_grabber.export import download_title, img_to_cbz, img_to_pdf, html_to_pdf, html_to_epub
 
 
 TOKEN = os.environ.get("TOKEN")
@@ -58,3 +58,14 @@ def test_save_as_pdf(downloaded_files):
         else:
             pdf_path = img_to_pdf(chapter_dir)
         assert pdf_path.exists(), f"PDF file {pdf_path} was not created"
+
+def test_save_as_epub(downloaded_files):
+    chapter_dirs = [d for d in downloaded_files.iterdir() if d.is_dir()]
+    assert len(chapter_dirs) > 0, "No files were downloaded"
+
+    for chapter_dir in chapter_dirs:
+        if any(chapter_dir.glob("*.html")):
+            epub_path = html_to_epub(chapter_dir)
+            assert epub_path.exists(), f"EPUB file {epub_path} was not created"
+        else:
+            pytest.skip(f"{chapter_dir.parent.name} is not ranobe, skipping EPUB test")

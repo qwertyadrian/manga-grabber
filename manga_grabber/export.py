@@ -113,6 +113,108 @@ def html_to_pdf(html_dir: Path):
     return pdf_path
 
 
+def html_to_epub(html_dir: Path):
+    """
+    Creates an EPUB file from the HTML content in the specified directory
+
+    :param html_dir: Directory containing the HTML file and assets
+    :return: Path to the created EPUB file
+    """
+    from ebooklib import epub
+
+    html_files = natsort.natsorted(html_dir.glob("*.html"), alg=natsort.ns.REAL)
+
+    if not html_files:
+        logger.warning(f"No HTML files found in {html_dir}")
+        return None
+
+    # Create EPUB book
+    book = epub.EpubBook()
+
+    # Extract metadata from directory name (e.g., "vol1_ch1")
+    dir_name = html_dir.name
+    book.set_title(dir_name)
+    book.set_language("ru")
+
+    # Add chapters and collect spine items
+    chapters = []
+    spine_items = ["nav"]
+
+    for idx, html_file in enumerate(html_files, start=1):
+        # Read HTML content
+        with open(html_file, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # Parse HTML to extract title
+        soup = BeautifulSoup(html_content, "html.parser")
+        title_tag = soup.find("title")
+        chapter_title = title_tag.string if title_tag else f"Глава {idx}"
+
+        # Create EPUB chapter
+        chapter = epub.EpubHtml(
+            title=chapter_title,
+            file_name=f"chapter_{idx}.xhtml",
+        )
+
+        # Process images in HTML
+        for img in soup.find_all("img"):
+            img_src = img.get("src")
+            if img_src:
+                img_path = html_dir / img_src
+                if img_path.exists():
+                    # Read image file
+                    with open(img_path, "rb") as img_file:
+                        img_content = img_file.read()
+
+                    # Determine image media type
+                    img_extension = img_path.suffix.lower()
+                    media_type_map = {
+                        ".jpg": "image/jpeg",
+                        ".jpeg": "image/jpeg",
+                        ".png": "image/png",
+                        ".gif": "image/gif",
+                        ".webp": "image/webp",
+                    }
+                    media_type = media_type_map.get(img_extension, "image/jpeg")
+
+                    # Create EPUB image item
+                    epub_img = epub.EpubItem(
+                        uid=f"img_{idx}_{img_path.name}",
+                        file_name=f"images/{img_path.name}",
+                        media_type=media_type,
+                        content=img_content,
+                    )
+                    book.add_item(epub_img)
+
+                    # Update image src in HTML
+                    img["src"] = f"images/{img_path.name}"
+
+        # Set chapter content with processed HTML
+        chapter.set_content(str(soup))
+
+        # Add chapter to book
+        book.add_item(chapter)
+        chapters.append(chapter)
+        spine_items.append(chapter)
+
+    # Add navigation files
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+
+    # Define Table of Contents
+    book.toc = tuple(chapters)
+
+    # Define spine (order of chapters)
+    book.spine = spine_items
+
+    # Write EPUB file
+    epub_path = html_dir.with_suffix(".epub")
+    epub.write_epub(str(epub_path), book)
+
+    logger.info(f"EPUB file created: {epub_path}")
+    return epub_path
+
+
 async def download_title(
     manga_url: str,
     output_dir: Path,
@@ -123,6 +225,7 @@ async def download_title(
     from_volume: int = 0,
     cbz: bool = False,
     pdf: bool = False,
+    epub: bool = False,
     save_mode: Literal["chapter", "volume", "all"] = "chapter",
 ):
     """
@@ -136,6 +239,7 @@ async def download_title(
     :param from_volume: Volume number to start downloading from
     :param cbz: If True, chapters will be archived as CBZ files
     :param pdf: If True, chapters will be archived as PDF files
+    :param epub: If True, chapters will be archived as EPUB files
     :param save_mode: How to save chapters, can be 'chapter' (one chapter per dir/file),
     'volume' (one volume per dir/file), or 'all' (one dir/file for all chapters)
     """
@@ -200,3 +304,11 @@ async def download_title(
                     html_to_pdf(chapter_dir)
                 else:
                     img_to_pdf(chapter_dir)
+            if epub:
+                if any(chapter_dir.glob("*.html")):
+                    html_to_epub(chapter_dir)
+                else:
+                    logger.warning(
+                        f"EPUB export is only supported for HTML content (ranobe). "
+                        f"Skipping chapter {chapter['number']} from volume {chapter['volume']}."
+                    )

@@ -15,6 +15,7 @@ dependencies = [
     "pillow",
     "natsort",
     "fonttools",
+    "ebooklib",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
