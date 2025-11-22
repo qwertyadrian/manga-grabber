@@ -140,6 +140,7 @@ async def download_title(
     'volume' (one volume per dir/file), or 'all' (one dir/file for all chapters)
     """
     manga_lib_class: type[BaseLib]
+    downloaded_dirs = list()
 
     manga_parsed_url = urllib.parse.urlparse(manga_url)
     if manga_parsed_url.hostname == "hentailib.me":
@@ -187,7 +188,11 @@ async def download_title(
                 branch_id=branch_id,
                 prefix=prefix,
             )
+            # Track directories and volumes for later export
+            if chapter_dir not in downloaded_dirs:
+                downloaded_dirs.append(chapter_dir)
 
+        for chapter_dir in downloaded_dirs:
             if cbz:
                 img_to_cbz(chapter_dir)
             if pdf:
