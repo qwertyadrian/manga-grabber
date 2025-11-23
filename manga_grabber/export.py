@@ -219,7 +219,7 @@ async def download_title(
     manga_url: str,
     output_dir: Path,
     *,
-    branch_id: int | None = None,
+    branch_id: int = 0,
     token: str | None = None,
     from_chapter: int | float = 0,
     from_volume: int = 0,
@@ -233,7 +233,8 @@ async def download_title(
 
     :param manga_url: URL of the manga on MangaLib
     :param output_dir: Directory where the manga chapters will be saved
-    :param branch_id: ID of translation branch (optional, for multi-branch titles)
+    :param branch_id: ID of translation branch (optional, for multi-branch titles).
+    If set to -1, main and alt branch will be downloaded
     :param token: Optional API token for authenticated requests
     :param from_chapter: Chapter number to start downloading from
     :param from_volume: Volume number to start downloading from
@@ -267,7 +268,7 @@ async def download_title(
             branch_found = any(
                 (branch["branch_id"] == branch_id for branch in chapter["branches"])
             )
-            if not branch_found:
+            if not branch_found and branch_id >= 0:
                 continue
 
             logger.info(
