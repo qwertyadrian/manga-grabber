@@ -51,7 +51,9 @@ class BaseLib(ABC):
         """Get the aiohttp session, creating it if it doesn't exist or is closed"""
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(
-                headers=self._headers, connector=self._connector
+                headers=self._headers,
+                connector=self._connector,
+                middlewares=[self._retry_middleware],
             )
         return self._session
 
@@ -106,6 +108,30 @@ class BaseLib(ABC):
                     raise GrabberException(
                         f"Failed to fetch chapter info: {response.status}"
                     )
+
+    @staticmethod
+    async def _retry_middleware(
+        req: aiohttp.ClientRequest, handler: aiohttp.ClientHandlerType
+    ) -> aiohttp.ClientResponse:
+        """
+        Middleware to retry a request up to 3 times in case of failure
+
+        :param req: The aiohttp request
+        :param handler: The aiohttp request handler
+        :return: The aiohttp response
+        """
+        max_retries = 5
+        for attempt in range(max_retries):
+            response = await handler(req)
+            match response.status:
+                case 429:
+                    logger.warning(f"Rate limited. Retrying {attempt + 1}/{max_retries}...")
+                case 500 | 502 | 503 | 504:
+                    logger.warning(f"Server error {response.status}. Retrying {attempt + 1}/{max_retries}...")
+                case _:
+                    return response
+            await asyncio.sleep(2**attempt)  # Exponential backoff
+        return response
 
     @staticmethod
     async def _download_file(
