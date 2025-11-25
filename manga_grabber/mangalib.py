@@ -60,7 +60,7 @@ class BaseLib(ABC):
         if self._session and not self._session.closed:
             await self._session.close()
 
-    async def get_chapters(self) -> dict:
+    async def get_chapters(self) -> list:
         """Fetch the list of chapters and additional info for the manga"""
         session = await self.session
         async with session.get(
@@ -77,7 +77,7 @@ class BaseLib(ABC):
                     )
 
     async def get_chapter_info(
-        self, chapter: int, volume: int, branch_id: int | None = None
+        self, chapter: int, volume: int, branch_id: int = 0
     ) -> dict:
         """
         Fetch detailed information about a specific chapter of the manga
@@ -89,7 +89,7 @@ class BaseLib(ABC):
         """
         session = await self.session
         params = {"number": chapter, "volume": volume}
-        if branch_id is not None:
+        if branch_id > 0:
             params["branch_id"] = branch_id
         async with session.get(
             f"{self.api_base_url}/manga/{self.manga_id}--{self.manga_name}/chapter",
