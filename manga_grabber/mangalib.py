@@ -184,7 +184,7 @@ class RanobeLib(MangaLib):
         # Replace URLs in the text with links
         soup = BeautifulSoup(text, "html.parser")
         for element in soup.find_all(string=True):
-            if element.parent.name != 'a':
+            if element.parent.name != "a":
                 new_text = re.sub(self.url_regex, self._create_hyperlink, str(element))
                 if new_text != str(element):
                     element.replace_with(BeautifulSoup(new_text, "html.parser"))

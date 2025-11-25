@@ -67,10 +67,6 @@ async def test_download_chapter(tmp_path, chapters):
     chapters, manga = chapters
     chapter = chapters[0]
     chapter_dir = tmp_path / f"vol{chapter['volume']}_ch{chapter['number']}"
-    await manga.download_chapter(
-        chapter["number"],
-        chapter["volume"],
-        chapter_dir,
-    )
+    await manga.download_chapter(chapter["number"], chapter["volume"], chapter_dir)
     assert chapter_dir.exists()
     assert any(chapter_dir.iterdir())
