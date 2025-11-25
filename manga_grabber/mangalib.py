@@ -2,65 +2,31 @@ import asyncio
 import logging
 import re
 import urllib.parse
-from abc import ABC, abstractmethod
 from pathlib import Path
 
-import aiohttp
 from bs4 import BeautifulSoup
 
+from .base import BaseGrabber, register_grabber
 from .exceptions import ChapterInfoError, GrabberException, TitleNotFoundError
 
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 
-class BaseLib(ABC):
-    """Base class for *Lib classes"""
+@register_grabber("mangalib.me")
+class MangaLib(BaseGrabber):
+    """A class to interact with the MangaLib API and download manga chapters"""
 
     api_base_url: str = "https://api.cdnlibs.org/api"
     resource_base_url: str = "https://img2.imglib.info"
 
-    def __init__(self, manga_url: str, token: str | None = None):
-        """
-        Initialize the *Lib instance
-
-        :param manga_url: URL of the manga on MangaLib
-        :param token: Optional API token for authenticated requests
-        """
-        self._session: aiohttp.ClientSession | None = None
-        self._connector = aiohttp.TCPConnector(limit=20)
-        self._token = token
-        self._headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:139.0) Gecko/20100101 Firefox/139.0"
-        }
+    def __init__(self, title_url: str, token: str | None = None):
+        super().__init__(title_url, token)
+        self._headers["Referer"] = "https://mangalib.me/"
         if token is not None:
             self._headers["Authorization"] = f"Bearer {token}"
-
-        # Extract the manga ID from the URL
-        self.manga_id = int(re.findall(r"/(\d+)--?([\w-]*)", manga_url)[0][0])
-        self.manga_name = re.findall(r"/(\d+)--?([\w-]*)", manga_url)[0][1]
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.close()
-
-    @property
-    async def session(self) -> aiohttp.ClientSession:
-        """Get the aiohttp session, creating it if it doesn't exist or is closed"""
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(
-                headers=self._headers,
-                connector=self._connector,
-                middlewares=[self._retry_middleware],
-            )
-        return self._session
-
-    async def close(self):
-        """Close the aiohttp session if it exists and is not closed"""
-        if self._session and not self._session.closed:
-            await self._session.close()
+        self.manga_id = int(re.findall(r"/(\d+)--?([\w-]*)", title_url)[0][0])
+        self.manga_name = re.findall(r"/(\d+)--?([\w-]*)", title_url)[0][1]
 
     async def get_chapters(self) -> list:
         """Fetch the list of chapters and additional info for the manga"""
@@ -109,77 +75,12 @@ class BaseLib(ABC):
                         f"Failed to fetch chapter info: {response.status}"
                     )
 
-    @staticmethod
-    async def _retry_middleware(
-        req: aiohttp.ClientRequest, handler: aiohttp.ClientHandlerType
-    ) -> aiohttp.ClientResponse:
-        """
-        Middleware to retry a request up to 3 times in case of failure
-
-        :param req: The aiohttp request
-        :param handler: The aiohttp request handler
-        :return: The aiohttp response
-        """
-        max_retries = 5
-        for attempt in range(max_retries):
-            response = await handler(req)
-            match response.status:
-                case 429:
-                    logger.warning(f"Rate limited. Retrying {attempt + 1}/{max_retries}...")
-                case 500 | 502 | 503 | 504:
-                    logger.warning(f"Server error {response.status}. Retrying {attempt + 1}/{max_retries}...")
-                case _:
-                    return response
-            await asyncio.sleep(2**attempt)  # Exponential backoff
-        return response
-
-    @staticmethod
-    async def _download_file(
-        session: aiohttp.ClientSession, url: str, path: Path, force: bool = False
-    ):
-        """
-        Download a file from the given URL and save it to the specified path
-
-        :param session: aiohttp session to use for the request
-        :param url: URL of the file to download
-        :param path: Path where the file will be saved
-        :param force: If True, overwrite the file if it already exists
-        """
-        if path.exists() and not force:
-            logger.info(f"File {path.name} already exists")
-            return
-        async with session.get(url) as response:
-            if response.status != 200:
-                raise GrabberException(f"Failed to download page: {response.status}")
-            with path.open("wb") as fd:
-                async for chunk in response.content.iter_chunked(1024):
-                    fd.write(chunk)
-
-    @abstractmethod
     async def download_chapter(
         self,
         chapter: int,
         volume: int,
         output_dir: Path,
-        branch_id: int | None = None,
-        prefix: str = "",
-    ):
-        pass
-
-
-class MangaLib(BaseLib):
-    """A class to interact with the MangaLib API and download manga chapters"""
-
-    def __init__(self, manga_url: str, token: str | None = None):
-        super().__init__(manga_url, token)
-        self._headers["Referer"] = "https://mangalib.me/"
-
-    async def download_chapter(
-        self,
-        chapter: int,
-        volume: int,
-        output_dir: Path,
-        branch_id: int | None = None,
+        branch_id: int = 0,
         prefix: str = "",
     ):
         """
@@ -209,15 +110,17 @@ class MangaLib(BaseLib):
         return await asyncio.gather(*tasks)
 
 
+@register_grabber("hentailib.me")
 class HentaiLib(MangaLib):
     resource_base_url = "https://img2h.imgslib.link"
 
-    def __init__(self, manga_url: str, token: str | None = None):
-        super().__init__(manga_url, token)
+    def __init__(self, title_url: str, token: str | None = None):
+        super().__init__(title_url, token)
         self._headers["Referer"] = "https://hentailib.me/"
 
 
-class RanobeLib(BaseLib):
+@register_grabber("ranobelib.me")
+class RanobeLib(MangaLib):
     resource_base_url = "https://ranobelib.me"
     url_regex = re.compile(
         r"https?://(www\.)?[-a-zA-Zа-яA-Я0-9@:%._+~#=]{1,256}\.[a-zA-Zа-яA-Я0-9]{1,6}\b([-a-zA-Zа-яA-Я0-9()@:%_+.~#?&/=]*)"
@@ -228,7 +131,7 @@ class RanobeLib(BaseLib):
         chapter: int,
         volume: int,
         output_dir: Path,
-        branch_id: int | None = None,
+        branch_id: int = 0,
         prefix: str = "",
     ):
         """

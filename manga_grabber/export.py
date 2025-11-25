@@ -11,7 +11,8 @@ from fpdf import FPDF
 from fpdf.outline import TableOfContents
 from PIL import Image
 
-from .mangalib import BaseLib, HentaiLib, MangaLib, RanobeLib
+from . import mangalib
+from .base import GRABBER_REGISTRY
 from .utils import find_font
 
 logger = logging.getLogger(__name__)
@@ -215,11 +216,28 @@ def html_to_epub(html_dir: Path):
     return epub_path
 
 
+def get_grabber(url: str) -> type[mangalib.BaseGrabber]:
+    """
+    Returns the appropriate grabber class based on the URL hostname
+
+    :param url: URL of the manga or ranobe title
+    :return: Grabber class corresponding to the URL
+    """
+    hostname = urllib.parse.urlparse(url).hostname
+    grabber_cls = GRABBER_REGISTRY.get(hostname)
+    if not grabber_cls:
+        logger.warning(
+            f"No specific parser found for {hostname}, falling back to MangaLib"
+        )
+
+    return grabber_cls or mangalib.MangaLib
+
+
 async def download_title(
     manga_url: str,
     output_dir: Path,
     *,
-    branch_id: int = 0,
+    branch_id: int = -1,
     token: str | None = None,
     from_chapter: int | float = 0,
     from_volume: int = 0,
@@ -244,18 +262,10 @@ async def download_title(
     :param save_mode: How to save chapters, can be 'chapter' (one chapter per dir/file),
     'volume' (one volume per dir/file), or 'all' (one dir/file for all chapters)
     """
-    manga_lib_class: type[BaseLib]
+    grabber_class = get_grabber(manga_url)
     downloaded_dirs = list()
 
-    manga_parsed_url = urllib.parse.urlparse(manga_url)
-    if manga_parsed_url.hostname == "hentailib.me":
-        manga_lib_class = HentaiLib
-    elif manga_parsed_url.hostname == "ranobelib.me":
-        manga_lib_class = RanobeLib
-    else:
-        manga_lib_class = MangaLib
-
-    async with manga_lib_class(manga_parsed_url.path, token) as manga_lib:
+    async with grabber_class(manga_url, token) as manga_lib:
         chapters = await manga_lib.get_chapters()
         for chapter in chapters:
             # Check if the volume and chapter numbers are within the specified ranges
