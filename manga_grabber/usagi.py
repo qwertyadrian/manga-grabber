@@ -114,12 +114,13 @@ class UsagiOne(BaseGrabber):
         tasks = []
         for num, page in enumerate(pages):
             url = page[0] + page[2]
-            url = url.split("?")[0]
+            url = url.split("?")[0] if "one-way.work" in url else url
+            name = url.split("/")[-1].split("?")[0]
             tasks.append(
                 self._download_file(
                     await self.session,
                     url,
-                    output_dir / f"{prefix}p{num:02d}_{url.split("/")[-1]}",
+                    output_dir / f"{prefix}p{num:02d}_{name}",
                 )
             )
         return await asyncio.gather(*tasks)
