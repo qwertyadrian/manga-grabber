@@ -112,7 +112,8 @@ class MangaLib(BaseGrabber):
 
 @register_grabber("hentailib.me")
 class HentaiLib(MangaLib):
-    resource_base_url = "https://img2h.imgslib.link"
+    api_base_url: str = "https://hapi.hentaicdn.org/api"
+    resource_base_url = "https://img2h.hentaicdn.org"
 
     def __init__(self, title_url: str, token: str | None = None):
         super().__init__(title_url, token)
