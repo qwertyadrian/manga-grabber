@@ -29,30 +29,25 @@ class UsagiOne(BaseGrabber):
     async def get_chapters(self) -> list:
         """Fetch the list of chapters and additional info for the manga"""
         session = await self.session
-        async with session.get(self.title_url) as response:
-            match response.status:
-                case 404:
-                    raise TitleNotFoundError(f"Title {self.title_name} not found")
-                case 200:
-                    html = await response.text()
-                    soup = BeautifulSoup(html, "html.parser")
-                    chapters = []
-                    for chapter in soup.find_all("td", {"class": "item-title"}):
-                        chapters.append(
-                            {
-                                "volume": int(chapter["data-vol"]),
-                                "number": float(chapter["data-num"]) / 10,
-                                "url": self.base_url + chapter.a["href"],
-                                "branches": self._get_translations(
-                                    chapter.a.get("data-translations", '[{"personId": 0}]')
-                                ),
-                            }
-                        )
-                    return list(reversed(chapters))
-                case _:
-                    raise GrabberException(
-                        f"Failed to fetch chapters: {response.status}"
-                    )
+        async with session.get(self.title_url) as resp:
+            if resp.status == 404:
+                raise TitleNotFoundError(f"Title {self.title_name} not found")
+            if resp.status != 200:
+                raise GrabberException(f"Failed to fetch chapters: {resp.status}")
+
+            soup = BeautifulSoup(await resp.text(), "html.parser")
+            chapters = [
+                {
+                    "volume": int(chapter["data-vol"]),
+                    "number": float(chapter["data-num"]) / 10,
+                    "url": self.base_url + chapter.a["href"],
+                    "branches": self._get_translations(
+                        chapter.a.get("data-translations", '[{"personId": 0}]')
+                    ),
+                }
+                for chapter in soup.find_all("td", {"class": "item-title"})
+            ]
+            return list(reversed(chapters))
 
     async def download_chapter(
         self,
@@ -73,26 +68,28 @@ class UsagiOne(BaseGrabber):
         """
         chapters = await self.get_chapters()
 
-        for c in chapters:
-            if c["number"] == chapter and c["volume"] == volume:
-                if branch_id > 0:
-                    for branch in c["branches"]:
-                        if branch["branch_id"] == branch_id:
-                            c["url"] += f"?tran={branch_id}"
-                            break
-                ch = c
-                break
-        else:
+        found = next(
+            (c for c in chapters if c["number"] == chapter and c["volume"] == volume),
+            None,
+        )
+        if not found:
             raise ChapterInfoError(f"Chapter {chapter} from volume {volume} not found")
 
+        # prepare chapter URL with translation if requested
+        ch_url = found["url"]
+        if branch_id > 0:
+            for br in found["branches"]:
+                if br["branch_id"] == branch_id:
+                    ch_url += f"?tran={branch_id}"
+                    break
+
         session = await self.session
-        async with session.get(ch["url"]) as response:
+        async with session.get(ch_url) as response:
             if response.status != 200:
                 raise GrabberException(
                     f"Failed to fetch chapter page: {response.status}"
                 )
-            html = await response.text()
-            soup = BeautifulSoup(html, "html.parser")
+            soup = BeautifulSoup(await response.text(), "html.parser")
             script_tag = soup.find(
                 "script",
                 string=lambda text: text and "rm_h.readerInit(chapterInfo" in text,
@@ -108,8 +105,7 @@ class UsagiOne(BaseGrabber):
             )
             pages = json.loads(pages_data.group(1).replace("'", '"'))
 
-        if not output_dir.exists():
-            output_dir.mkdir(parents=True)
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         tasks = []
         for num, page in enumerate(pages):
