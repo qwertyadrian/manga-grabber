@@ -1,5 +1,4 @@
 import asyncio
-import os
 
 import pytest
 import pytest_asyncio
@@ -48,7 +47,6 @@ async def test_get_chapters(chapters):
         assert "branches" in chapter
 
 
-@pytest.mark.skipif(os.getenv("CI") == "true", reason="Skipping download test on CI")
 async def test_download_chapter(tmp_path, chapters):
     chapters, manga = chapters
     chapter = chapters[0]

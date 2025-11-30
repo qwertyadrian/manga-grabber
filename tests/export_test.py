@@ -1,6 +1,5 @@
 import os
 
-from aiohttp.client_exceptions import ClientResponseError
 import pytest
 import pytest_asyncio
 
@@ -22,6 +21,8 @@ def output_dir(tmp_path_factory):
         "https://ranobelib.me/ru/29610--itai-no-itai-no-tonde-yuke",
         "https://ranobelib.me/ru/25000--kimi-no-suizou-wo-tabetai-yoru-sumino",
         "https://hentailib.me/ru/234290--couple-under-the-rain",
+        "https://web.usagi.one/spy_x_family_dj___anya_and_damian",
+        "https://web.usagi.one/hot_first_kiss",
     ],
 )
 async def downloaded_files(request, output_dir):
