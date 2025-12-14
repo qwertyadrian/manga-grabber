@@ -191,8 +191,7 @@ class RanobeLib(MangaLib):
                     element.replace_with(BeautifulSoup(new_text, "html.parser"))
         text = str(soup)
 
-        with file.open("w", encoding="utf-8") as f:
-            f.write(text)
+        file.write_text(text, encoding="utf-8")
 
         tasks = []
         for attachment in attachments:
