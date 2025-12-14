@@ -167,22 +167,10 @@ def html_to_epub(html_dir: Path):
                     with open(img_path, "rb") as img_file:
                         img_content = img_file.read()
 
-                    # Determine image media type
-                    img_extension = img_path.suffix.lower()
-                    media_type_map = {
-                        ".jpg": "image/jpeg",
-                        ".jpeg": "image/jpeg",
-                        ".png": "image/png",
-                        ".gif": "image/gif",
-                        ".webp": "image/webp",
-                    }
-                    media_type = media_type_map.get(img_extension, "image/jpeg")
-
                     # Create EPUB image item
                     epub_img = epub.EpubItem(
                         uid=f"img_{idx}_{img_path.name}",
                         file_name=f"images/{img_path.name}",
-                        media_type=media_type,
                         content=img_content,
                     )
                     book.add_item(epub_img)
