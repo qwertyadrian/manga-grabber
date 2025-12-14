@@ -7,3 +7,4 @@ __license__ = "MIT"
 from .export import download_title, html_to_epub, html_to_pdf, img_to_cbz, img_to_pdf
 from .mangalib import HentaiLib, MangaLib, RanobeLib
 from .usagi import UsagiOne
+from .ranobehub import RanobeHub
