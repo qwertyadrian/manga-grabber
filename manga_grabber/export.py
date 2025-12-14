@@ -11,7 +11,7 @@ from fpdf import FPDF
 from fpdf.outline import TableOfContents
 from PIL import Image
 
-from . import mangalib, usagi
+from . import mangalib, usagi, ranobehub
 from .base import GRABBER_REGISTRY
 from .utils import find_font
 

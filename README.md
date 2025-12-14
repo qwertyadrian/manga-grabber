@@ -9,10 +9,12 @@ A simple manga/ranobe downloader written in Python
 
 ## Features (in progress)
 - Download manga/ranobe from various sources
-- Supports multiple formats (CBZ, PDF)
+- Supports multiple formats (CBZ, PDF, EPUB)
 - Command-line interface
 
 ## Supported Sources
 - [x] MangaLib
 - [x] HentaiLib (need token to work)
 - [x] RanobeLib
+- [x] ReadManga (web.usagi.one)
+- [x] RanobeHub
