@@ -109,6 +109,8 @@ def html_to_pdf(html_dir: Path):
         pdf.write_html(html_content, font_family="DejaVuSerif")
         pdf.add_page()
 
+    pdf.named_destinations = {}
+
     pdf.output(str(pdf_path))
     logger.info(f"PDF file created: {pdf_path}")
     return pdf_path
