@@ -8,9 +8,10 @@
 A simple manga/ranobe downloader written in Python
 
 ## Features (in progress)
-- Download manga/ranobe from various sources
-- Supports multiple formats (CBZ, PDF, EPUB)
-- Command-line interface
+- [x] Download manga/ranobe from various sources
+- [ ] Search manga/ranobe by name
+- [x] Supports multiple formats (CBZ, PDF, EPUB)
+- [x] Command-line interface
 
 ## Supported Sources
 - [x] MangaLib
