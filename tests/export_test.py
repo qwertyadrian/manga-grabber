@@ -7,6 +7,7 @@ from manga_grabber.export import download_title, img_to_cbz, img_to_pdf, html_to
 
 
 TOKEN = os.environ.get("TOKEN")
+IS_CI = os.environ.get("CI", "false").lower() == "true"
 
 
 @pytest.fixture(scope="session")
@@ -23,8 +24,14 @@ def output_dir(tmp_path_factory):
         "https://hentailib.me/ru/234290--couple-under-the-rain",
         "https://web.usagi.one/spy_x_family_dj___anya_and_damian",
         "https://web.usagi.one/hot_first_kiss",
-        "https://ranobehub.org/ranobe/1322-the-reader-me-the-protagonist-her-and-their-after",
-        "https://ranobehub.org/ranobe/1320-behind-your-smile",
+        pytest.param(
+            "https://ranobehub.org/ranobe/1322-the-reader-me-the-protagonist-her-and-their-after",
+            marks=pytest.mark.skipif(IS_CI, reason="RanobeHub blocks GitHub Actions IPs"),
+        ),
+        pytest.param(
+            "https://ranobehub.org/ranobe/1320-behind-your-smile",
+            marks=pytest.mark.skipif(IS_CI, reason="RanobeHub blocks GitHub Actions IPs"),
+        ),
     ],
 )
 async def downloaded_files(request, output_dir):
