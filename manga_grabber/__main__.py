@@ -32,6 +32,8 @@ from .export import download_title
     default=0,
     help="Volume number to start downloading from",
 )
+@click.option("-v", "--verbose", is_flag=True, default=False, help="Verbose output")
+@click.version_option()
 def main(
     title_url: str,
     output_dir: pathlib.Path,
@@ -43,7 +45,13 @@ def main(
     save_mode: str,
     from_chapter: int | float,
     from_volume: int,
+    verbose: bool,
 ):
+    if verbose:
+        import logging
+
+        logging.basicConfig(level=logging.DEBUG)
+
     asyncio.run(
         download_title(
             title_url,
@@ -60,5 +68,5 @@ def main(
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
